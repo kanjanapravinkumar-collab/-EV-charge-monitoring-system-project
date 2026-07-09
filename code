@@ -1,0 +1,66 @@
+#define BLYNK_TEMPLATE_ID "YOUR_TEMPLATE_ID"
+#define BLYNK_TEMPLATE_NAME "EV Monitor"
+#define BLYNK_AUTH_TOKEN "YOUR_AUTH_TOKEN" // Paste your real Blynk Token here
+
+#include <WiFi.h>
+#include <WiFiClient.h>
+#include <BlynkSimpleEsp32.h>
+
+// Wokwi's special built-in virtual Wi-Fi settings
+char auth[] = BLYNK_AUTH_TOKEN;
+char ssid[] = "Wokwi-GUEST"; 
+char pass[] = ""; 
+
+const int currentPin = 34; 
+const int relayPin = 25;   
+
+float sensitivity = 0.066; 
+float voltage = 230.0;     
+
+BlynkTimer timer;
+
+void checkEVStatus() {
+  long sensorValue = 0;
+  float adcVoltage = 0;
+  float current = 0;
+  float power = 0;
+
+  for(int i = 0; i < 20; i++) {
+    sensorValue += analogRead(currentPin);
+    delayMicroseconds(10);
+  }
+  sensorValue = sensorValue / 20;
+  
+  adcVoltage = (sensorValue / 4095.0) * 3.3;
+  
+  // Wokwi slider outputs 0V to 3.3V. We simulate a conversion to Amps:
+  current = (adcVoltage * 10.0); 
+  power = current * voltage;
+
+  Blynk.virtualWrite(V1, current); 
+  Blynk.virtualWrite(V2, power);   
+
+  Serial.print("Current: "); Serial.print(current); Serial.print(" A | ");
+  Serial.print("Power: "); Serial.print(power); Serial.println(" W");
+
+  if (current > 15.0) { 
+    digitalWrite(relayPin, LOW); 
+    Serial.println("⚠️ OVERCURRENT DETECTED! Relay Tripped.");
+  } else {
+    digitalWrite(relayPin, HIGH);
+  }
+}
+
+void setup() {
+  Serial.begin(115200);
+  pinMode(relayPin, OUTPUT);
+  digitalWrite(relayPin, HIGH); 
+  
+  Blynk.begin(auth, ssid, pass);
+  timer.setInterval(2000L, checkEVStatus);
+}
+
+void loop() {
+  Blynk.run();
+  timer.run();
+}
