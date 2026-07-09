@@ -1,0 +1,113 @@
+# IoT-Based EV Charging Station Monitoring and Control System
+
+An intelligent IoT solution designed to safely monitor, analyze, and control Electric Vehicle (EV) charging sessions in real-time. This system tracks electrical parameters like current and power, provides overcurrent protection, and uploads live data to a cloud platform for remote access.
+
+---
+
+## 1. Abstract
+The rapid adoption of Electric Vehicles (EVs) creates a strong demand for smart, safe, and efficient charging infrastructure. This project presents an IoT-based EV Charge Monitoring System designed to track electrical parameters during a charging session in real-time. By utilizing an ESP32 microcontroller and a high-precision current sensor, the system monitors live current drawing and estimates total power consumption. A cloud-connected IoT dashboard allows users to monitor their vehicle's charging status remotely. Additionally, the system features an automated safety mechanism using a relay module to immediately cut off the power supply during overcurrent or short-circuit faults, protecting both the vehicle battery and the electrical grid.
+
+---
+
+## 2. Introduction
+Electric vehicles rely heavily on the health and efficiency of their battery packs. Monitoring the power delivery during a charging cycle is essential to prevent degradation, overheating, and electrical accidents. Manual monitoring is inefficient and cannot offer immediate protection against sudden electrical surges.
+
+This project solves these issues by introducing an automation layer using Internet of Things (IoT) technology. The system continually samples analog signals from electrical sensors, converts them into digital values, calculates power metrics, and pushes the data to a cloud network. This ensures complete transparency, allows cost calculation based on energy units consumed, and provides automated grid-to-vehicle safety isolation.
+
+---
+
+## 3. System Architecture
+The system functions through three distinct layers: Data Acquisition (Sensors), Processing & Control (Microcontroller), and Visualization (Cloud Application).
+
+* **Power Source (Grid Input):** Supplies 230V AC power to the EV charger.
+* **Relay Protection Circuit:** Placed inline with the active mains wire to act as an automated circuit breaker.
+* **Sensing Node:** The ACS712 sensor sits in series with the load to read real-time current changes.
+* **Core Processing Unit (ESP32):** Reads analog inputs from sensors, processes mathematical calibrations, executes safety logic, and connects to the internet via its onboard Wi-Fi chip.
+* **IoT Cloud Layer:** Receives the processed parameters via MQTT or HTTP protocols and hosts the user-facing visual gauges.
+
+---
+
+## 4. Hardware System Design & Components
+
+| Component Name | Purpose |
+| :--- | :--- |
+| **ESP32 NodeMCU** | Main microcontroller with built-in Wi-Fi to process data and connect to the cloud. It features a fast clock speed of 240MHz and dual-core processing to handle sensor reading and data transmission simultaneously. |
+| **ACS712 Current Sensor (30A)** | Measures the AC/DC current passing into the vehicle's battery. It works on the principle of the Hall-Effect, outputting a linear voltage proportional to the target current. |
+| **5V Single-Channel Relay Module** | Acts as an electronic switch to safely connect or disconnect the charger. If the ESP32 detects an overload, it pulls this relay pin LOW to isolate the load. |
+| **Jumper Wires & Breadboard** | Used for making prototype circuit connections safely without soldering. |
+
+---
+
+## 5. Circuit Connection Diagram (Pin Mapping)
+
+### 5.1 ACS712 Current Sensor to ESP32
+* **VCC** ➡️ ESP32 **5V / VIN**
+* **GND** ➡️ ESP32 **GND**
+* **OUT (Analog Out)** ➡️ ESP32 **GPIO 34** (Analog Input Pin)
+
+### 5.2 5V Relay Module to ESP32
+* **VCC** ➡️ ESP32 **5V / VIN**
+* **GND** ➡️ ESP32 **GND**
+* **IN (Signal Pin)** ➡️ ESP32 **GPIO 25**
+
+### 5.3 Power Line Connections
+* Connect the **Live AC Wire** from your main power supply to the **Common (COM)** terminal of the relay.
+* Connect the **Normally Open (NO)** terminal of the relay to one terminal of the **ACS712 current sensor terminal block**.
+* Connect the other terminal of the **ACS712 block** directly to your **EV Charger input**.
+
+---
+
+## 6. Working Methodology
+1. **Initialization:** When powered up, the ESP32 initializes its GPIO pins, configures the internal ADC, and establishes a secure connection to the designated Wi-Fi network and cloud server.
+2. **Data Acquisition:** The system constantly samples the voltage from the ACS712 sensor. Because AC current fluctuates, multiple samples are taken rapidly over a specific period to calculate an accurate Root Mean Square (RMS) current value.
+3. **Parameter Calculation:** Using the calculated current (I) and the standard grid voltage (V), the system applies the electrical formula for Apparent Power ($P = V \times I$).
+4. **Safety Analysis:** The processing unit compares the live current against a pre-programmed maximum threshold (e.g., 15 Amperes). If the current crosses this limit, a critical flag is triggered, pulling the relay control pin LOW to instantly isolate the load.
+5. **Cloud Synchronization:** Every two seconds, the system packages the electrical data and uploads it to the IoT dashboard, updating the user interface charts instantly.
+
+---
+
+## 7. Software Setup Guide
+
+### Step 1: Clone the Repository
+```bash
+git clone https://github.com
+```
+
+### Step 2: Install Arduino IDE & Libraries
+1. Download and install the latest **Arduino IDE**.
+2. Go to **Tools** ➡️ **Board** ➡️ **Boards Manager**, search for `esp32` by Expressif, and install it.
+3. Go to **Sketch** ➡️ **Include Library** ➡️ **Manage Libraries**, search for `Blynk`, and click **Install**.
+
+### Step 3: Configure Cloud Platform
+1. Create a free account on the **Blynk Cloud Console**.
+2. Create a new **Template** named `EV Monitor`.
+3. Set up two **Virtual Data Streams**:
+   * **V1:** Name = `Current`, Data Type = `Double`, Unit = `A`
+   * **V2:** Name = `Power`, Data Type = `Double`, Unit = `W`
+4. Copy the unique **Template ID**, **Template Name**, and **Auth Token** provided by Blynk.
+
+### Step 4: Flash the Firmware
+1. Open your project's code file (`.ino`) in Arduino IDE.
+2. Replace the placeholder values for `BLYNK_AUTH_TOKEN`, `YOUR_WIFI_NAME`, and `YOUR_WIFI_PASSWORD` with your own credentials.
+3. Connect your ESP32 board to your computer using a USB cable.
+4. Select the correct **COM Port** and board model under **Tools**.
+5. Click the **Upload** button.
+
+---
+
+## 8. Advantages and Future Scope
+
+### Advantages:
+* **Enhanced Safety:** Provides immediate protection against overcurrent conditions, preventing potential battery thermal issues or fires.
+* **Remote Management:** Allows users to check if their vehicle is fully charged from anywhere in the world.
+* **Low Cost:** Built using highly accessible, economical open-source hardware and software.
+
+### Future Scope:
+* **Predictive Analytics:** Integrating Machine Learning algorithms to analyze historical battery data and predict overall battery health and degradation patterns over time.
+* **Billing System Integration:** Adding RFID readers and digital payment gateways to convert the setup into a self-service commercial charging station.
+* **True Voltage Tracking:** Adding a ZMPT101B AC voltage sensor to measure exact grid voltage fluctuations for precision power calculations.
+
+---
+
+## 📄 License
+This project is licensed under the MIT License - feel free to use and modify it for your personal or educational projects!
